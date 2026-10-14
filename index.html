@@ -69,17 +69,67 @@
         .oact{display:flex;gap:8px}
         .obtn{flex:1;background:var(--primary);color:#fff;border:none;padding:10px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer}
         .obtn.alt{flex:0 0 auto;background:#333;padding:10px 14px}
-        .mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-        .mesa{background:#222;border:2px solid #333;border-radius:14px;color:#fff;padding:16px 6px;cursor:pointer;display:flex;flex-direction:column;gap:4px;align-items:center}
-        .mesa b{font-size:22px}
-        .mesa small{color:#a0a0a0}
-        .mesa.busy{border-color:var(--primary);background:#2a1214}
-        .mozo-menu{max-height:220px;overflow-y:auto;border:1px solid #282828;border-radius:10px;padding:0 10px;margin-bottom:10px}
         .track-chip{position:fixed;right:15px;bottom:84px;z-index:1000;background:#fff;color:#111;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.4);cursor:pointer;display:none}
         .tstep{display:flex;align-items:center;gap:12px;padding:12px 0;color:#777}
         .tstep i{width:26px;height:26px;border-radius:50%;border:2px solid #444;display:flex;align-items:center;justify-content:center;font-size:12px;font-style:normal;flex-shrink:0}
         .tstep.done{color:#fff}
         .tstep.done i{background:var(--accent-green);border-color:var(--accent-green)}
+        .mz-bar{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(17,17,17,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--card-border)}
+        .mz-bar .ttl{flex:1;min-width:0}
+        .mz-bar .ttl b{display:block;font-size:16px;line-height:1.2}
+        .mz-bar .ttl small{color:var(--text-secondary);font-size:12px}
+        .mz-ic{width:40px;height:40px;border-radius:12px;border:1px solid #333;background:#1c1c1c;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .mz-wrap{max-width:720px;margin:0 auto;padding:16px 16px 170px}
+        .mz-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+        .mz-stat{background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;padding:12px}
+        .mz-stat b{display:block;font-size:24px;font-weight:800;line-height:1.1}
+        .mz-stat small{color:var(--text-secondary);font-size:11px}
+        .mz-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+        @media(min-width:560px){.mz-grid{grid-template-columns:repeat(3,1fr)}}
+        .mz-card{text-align:left;background:var(--card-bg);border:1px solid var(--card-border);border-radius:16px;padding:14px 14px 14px 18px;color:#fff;cursor:pointer;position:relative;overflow:hidden;min-height:118px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;transition:transform .12s}
+        .mz-card:active{transform:scale(.97)}
+        .mz-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:#2f2f2f}
+        .mz-card.busy::before{background:var(--primary)}
+        .mz-card.ready::before{background:var(--accent-green)}
+        .mz-card .n{font-size:28px;font-weight:800;line-height:1}
+        .mz-card .n small{display:block;font-size:11px;color:var(--text-secondary);font-weight:600;margin-bottom:3px}
+        .mz-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;background:#262626;color:#aaa;white-space:nowrap}
+        .mz-badge.busy{background:rgba(229,9,20,.16);color:#ff6068}
+        .mz-badge.ready{background:rgba(37,211,102,.16);color:#25d366}
+        .mz-badge.wait{background:rgba(245,158,11,.16);color:#f59e0b}
+        .mz-total{font-weight:800;font-size:16px;color:var(--primary-yellow)}
+        .mz-sub{font-size:11px;color:var(--text-secondary);margin-top:2px}
+        .mz-sec{margin:20px 0 8px;font-size:13px;font-weight:700;color:var(--primary-yellow)}
+        .mz-order{background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;padding:12px;margin-bottom:10px}
+        .mz-order .h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;font-size:13px}
+        .mz-order ul{margin:0;padding:0;list-style:none;font-size:13px;line-height:1.6;color:#ddd}
+        .mz-order .f{display:flex;justify-content:space-between;gap:8px;margin-top:8px;padding-top:8px;border-top:1px dashed #333;font-size:12px;color:var(--text-secondary)}
+        .mz-pend{background:rgba(229,9,20,.07);border:1px solid rgba(229,9,20,.35);border-radius:14px;padding:4px 12px;margin-bottom:12px}
+        .mz-tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-bottom:10px}
+        .mz-tabs::-webkit-scrollbar{display:none}
+        .mz-tab{padding:8px 16px;background:#222;border:1px solid #333;border-radius:20px;font-size:13px;font-weight:600;white-space:nowrap;color:var(--text-secondary);cursor:pointer}
+        .mz-tab.on{background:var(--primary);border-color:var(--primary);color:#fff}
+        .mz-search{display:flex;align-items:center;gap:10px;background:#222;border:1px solid #333;border-radius:12px;padding:0 14px;margin-bottom:12px}
+        .mz-search input{flex:1;background:transparent;border:0;outline:0;color:#fff;font-size:14px;padding:12px 0}
+        .mz-prod{display:flex;align-items:center;gap:12px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;padding:10px;margin-bottom:8px}
+        .mz-prod img{width:58px;height:58px;border-radius:10px;object-fit:cover;flex-shrink:0}
+        .mz-prod .t{flex:1;min-width:0}
+        .mz-prod .t b{display:block;font-size:14px;line-height:1.25}
+        .mz-prod .t small{color:var(--primary-yellow);font-weight:700;font-size:12px}
+        .mz-add{width:40px;height:40px;border-radius:12px;border:0;background:var(--primary);color:#fff;cursor:pointer;font-size:14px;flex-shrink:0}
+        .mz-add:active{transform:scale(.92)}
+        .mz-dock{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:rgba(17,17,17,.97);backdrop-filter:blur(8px);border-top:1px solid var(--card-border)}
+        .mz-dock .in{max-width:720px;margin:0 auto}
+        .mz-dock input{width:100%;padding:11px 12px;background:#222;border:1px solid #333;border-radius:10px;color:#fff;font-size:13px;margin-bottom:8px;outline:none}
+        .mz-send{width:100%;border:0;border-radius:14px;padding:15px 18px;background:var(--primary);color:#fff;font-weight:800;font-size:15px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+        .mz-send:disabled{background:#2a2a2a;color:#777;cursor:not-allowed}
+        .mz-bill{background:var(--card-bg);border:1px solid var(--card-border);border-radius:16px;padding:14px;margin-top:22px}
+        .mz-bill .tot{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;color:var(--text-secondary);font-size:13px}
+        .mz-bill .tot b{font-size:26px;color:var(--primary-yellow)}
+        .mz-pay{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+        .mz-pay button{padding:12px 8px;border-radius:12px;border:1px solid #333;background:#1c1c1c;color:#ccc;font-weight:600;font-size:13px;cursor:pointer}
+        .mz-pay button.on{border-color:var(--primary);background:rgba(229,9,20,.14);color:#fff}
+        .mz-close{width:100%;border:0;border-radius:14px;padding:14px;background:var(--accent-green);color:#fff;font-weight:800;font-size:15px;cursor:pointer}
     </style>
 </head>
 <body>
@@ -161,8 +211,7 @@
 </div>
 
 <div class="fullview" id="mozoView">
-    <div class="fv-top"><b><i class="fas fa-utensils" style="color:var(--primary)"></i> Mozo</b><button class="obtn alt" onclick="location.hash=''">Salir</button></div>
-    <div class="fv-body" id="mozoBody"></div>
+    <div id="mozoBody"></div>
 </div>
 
 <script>
@@ -313,7 +362,7 @@ function printTicket(id){
 
 /* --- Mozo: mesas y comandas --- */
 const mesaOrders=n=>DB.get().filter(o=>o.type==='mesa'&&o.mesa===n&&!o.closed);
-function selectMesa(n){mozoMesa=n;mozoCart=[];mozoNotesVal='';renderMozo()}
+function selectMesa(n){mozoMesa=n;mozoCart=[];mozoNotesVal='';mozoCat='all';mozoQ='';mozoPayVal='Efectivo';renderMozo()}
 function backMesas(){mozoMesa=null;mozoCart=[];renderMozo()}
 function mozoQty(k,d){mozoCart[k].qty+=d;if(mozoCart[k].qty<=0)mozoCart.splice(k,1);renderMozo()}
 function sendToKitchen(){
@@ -322,28 +371,54 @@ function sendToKitchen(){
  mozoCart=[];mozoNotesVal='';refreshAll();
 }
 function closeMesa(){
- const pay=document.getElementById('mozoPay').value,all=DB.get();
+ const pay=mozoPayVal,all=DB.get();
  all.forEach(o=>{if(o.type==='mesa'&&o.mesa===mozoMesa&&!o.closed){o.closed=true;o.paid=pay}});
- DB.set(all);mozoMesa=null;mozoCart=[];refreshAll();
+ DB.set(all);mozoMesa=null;mozoCart=[];mozoPayVal='Efectivo';refreshAll();
+}
+let mozoCat='all',mozoQ='',mozoPayVal='Efectivo';
+const MZ_PAYS=['Efectivo','Transferencia Bancaria','POS / Tarjeta','PIX'];
+const mins=t=>{const m=Math.max(0,Math.round((Date.now()-t)/60000));return m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min'};
+function mesaInfo(n){
+ const os=mesaOrders(n);
+ return {os,tot:os.reduce((s,o)=>s+o.total,0),units:os.reduce((s,o)=>s+o.items.reduce((a,i)=>a+i.qty,0),0),ready:os.some(o=>o.status===2),cooking:os.some(o=>o.status<2),since:os.length?os[0].at:0};
+}
+function mozoTop(title,sub,back){
+ return `<div class="mz-bar">${back?'<button class="mz-ic" onclick="backMesas()" aria-label="Volver a las mesas"><i class="fas fa-arrow-left"></i></button>':'<div class="mz-ic" style="background:var(--primary);border-color:var(--primary)"><i class="fas fa-utensils"></i></div>'}<div class="ttl"><b>${title}</b><small>${sub}</small></div><button class="mz-ic" onclick="location.hash=\'\'" aria-label="Salir"><i class="fas fa-right-from-bracket"></i></button></div>`;
+}
+function renderMozoMenu(){
+ const el=document.getElementById('mzList');if(!el)return;
+ const q=mozoQ.toLowerCase();
+ const list=menuData.filter(c=>mozoCat==='all'||c.category===mozoCat).flatMap(c=>c.items).filter(i=>i.name.toLowerCase().includes(q));
+ el.innerHTML=list.length?list.map(i=>`<div class="mz-prod"><img src="${i.img}" alt="" loading="lazy"><div class="t"><b>${esc(i.name)}</b><small>Desde ${fmt(i.priceSimple)}</small></div><button class="mz-add" onclick="openItemModal('${i.id}')" aria-label="Agregar ${esc(i.name)}"><i class="fas fa-plus"></i></button></div>`).join(''):'<p class="pempty">Sin resultados.</p>';
 }
 function renderMozo(){
  const b=document.getElementById('mozoBody');
  if(mozoMesa===null){
-  b.innerHTML='<div class="option-title" style="margin-top:0">Elige una mesa</div><div class="mgrid">'+Array.from({length:MESAS},(_,i)=>{const n=i+1,os=mesaOrders(n),t=os.reduce((s,o)=>s+o.total,0);
-   return `<button class="mesa ${os.length?'busy':''}" onclick="selectMesa(${n})"><b>${n}</b><small>${os.length?fmt(t):'Libre'}</small></button>`}).join('')+'</div>';
+  const ms=Array.from({length:MESAS},(_,i)=>Object.assign({n:i+1},mesaInfo(i+1)));
+  const busy=ms.filter(m=>m.os.length).length,ready=ms.filter(m=>m.ready).length;
+  b.innerHTML=mozoTop('Salón','Hamburguelândia CDE',false)+
+  `<div class="mz-wrap"><div class="mz-stats"><div class="mz-stat"><b>${MESAS-busy}</b><small>Mesas libres</small></div><div class="mz-stat"><b>${busy}</b><small>Ocupadas</small></div><div class="mz-stat"><b style="color:#25d366">${ready}</b><small>Listas para servir</small></div></div><div class="mz-grid">`+
+  ms.map(m=>{
+   const cls=m.ready?'ready':m.os.length?'busy':'';
+   const badge=m.ready?'<span class="mz-badge ready"><i class="fas fa-bell"></i> Servir</span>':m.os.length?(m.cooking?'<span class="mz-badge wait">En cocina</span>':'<span class="mz-badge busy">Servida</span>'):'<span class="mz-badge">Libre</span>';
+   return `<button class="mz-card ${cls}" onclick="selectMesa(${m.n})"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px"><div class="n"><small>Mesa</small>${m.n}</div>${badge}</div><div>${m.os.length?`<div class="mz-total">${fmt(m.tot)}</div><div class="mz-sub">${m.units} ítems · hace ${mins(m.since)}</div>`:'<div class="mz-sub">Toca para abrir</div>'}</div></button>`;
+  }).join('')+'</div></div>';
   return;
  }
- const os=mesaOrders(mozoMesa),tot=os.reduce((s,o)=>s+o.total,0),pend=mozoCart.reduce((s,i)=>s+i.price*i.qty,0);
- const items=menuData.flatMap(c=>c.items);
- b.innerHTML=`<button class="obtn alt" onclick="backMesas()"><i class="fas fa-arrow-left"></i> Mesas</button><h3 style="margin:12px 0 0">Mesa ${mozoMesa}</h3>
- <div class="option-title">Ya enviado a cocina</div>
- ${os.length?os.map(o=>`<div class="cart-item-row"><div style="font-size:12px"><b>#${o.id}</b> · <span style="color:${ST_COLORS[o.status]}">${ST_NAMES[o.status]}</span><br>${o.items.map(i=>i.qty+'x '+esc(i.title)).join('<br>')}</div><b style="font-size:12px">${fmt(o.total)}</b></div>`).join(''):'<p class="pempty">Nada todavía.</p>'}
- <div class="option-title">Nueva comanda</div>
- ${mozoCart.length?mozoCart.map((i,k)=>`<div class="cart-item-row"><div><div style="font-weight:700;font-size:13px">${esc(i.title)}</div><div style="color:var(--primary-yellow);font-size:12px">${fmt(i.price*i.qty)}</div></div><div style="display:flex;align-items:center;gap:8px"><button class="qty-btn" onclick="mozoQty(${k},-1)">-</button><span style="font-weight:bold;font-size:13px">${i.qty}</span><button class="qty-btn" onclick="mozoQty(${k},1)">+</button></div></div>`).join(''):'<p class="pempty">Agrega productos de la lista.</p>'}
- <div class="mozo-menu">${items.map(i=>`<div class="cart-item-row"><span style="font-size:13px">${esc(i.name)}</span><button class="add-btn" onclick="openItemModal('${i.id}')"><i class="fas fa-plus"></i> Agregar</button></div>`).join('')}</div>
- <input type="text" id="mozoNotes" class="form-input" placeholder="Observaciones (Ej: sin cebolla)" value="${esc(mozoNotesVal)}" oninput="mozoNotesVal=this.value">
- <button class="btn-green" style="background:var(--primary);margin-top:0" onclick="sendToKitchen()" ${mozoCart.length?'':'disabled'}><i class="fas fa-paper-plane"></i> Enviar a cocina · ${fmt(pend)}</button>
- ${os.length?`<div class="option-title">Cerrar cuenta · Total ${fmt(tot)}</div><select id="mozoPay" class="form-input"><option>Efectivo</option><option>Transferencia Bancaria</option><option>POS / Tarjeta</option><option>PIX</option></select><button class="btn-green" style="margin-top:0" onclick="closeMesa()"><i class="fas fa-check"></i> Cerrar cuenta de la mesa</button>`:''}`;
+ const m=mesaInfo(mozoMesa),pend=mozoCart.reduce((s,i)=>s+i.price*i.qty,0),pendUnits=mozoCart.reduce((s,i)=>s+i.qty,0);
+ const cats=[['all','Todo']].concat(menuData.map(c=>[c.category,c.catName.replace(/^\S+\s+/,'')]));
+ b.innerHTML=mozoTop('Mesa '+mozoMesa,m.os.length?`Abierta hace ${mins(m.since)} · ${fmt(m.tot)}`:'Mesa libre',true)+
+ `<div class="mz-wrap">
+ ${m.os.length?'<div class="mz-sec" style="margin-top:4px">Pedidos en cocina</div>'+m.os.map(o=>`<div class="mz-order"><div class="h"><b>#${o.id} · ${hora(o.at)}</b><span class="mz-badge" style="background:${ST_COLORS[o.status]}2b;color:${ST_COLORS[o.status]}">${ST_NAMES[o.status]}</span></div><ul>${o.items.map(i=>`<li>${i.qty}x ${esc(i.title)}</li>`).join('')}</ul>${o.notes?`<div class="f"><span>📝 ${esc(o.notes)}</span></div>`:''}<div class="f"><span>Subtotal</span><b style="color:#fff">${fmt(o.total)}</b></div></div>`).join(''):''}
+ <div class="mz-sec" ${m.os.length?'':'style="margin-top:4px"'}>Nueva comanda</div>
+ ${mozoCart.length?'<div class="mz-pend">'+mozoCart.map((i,k)=>`<div class="cart-item-row"><div><div style="font-weight:700;font-size:13px">${esc(i.title)}</div><div style="color:var(--primary-yellow);font-size:12px">${fmt(i.price*i.qty)}</div></div><div style="display:flex;align-items:center;gap:8px"><button class="qty-btn" onclick="mozoQty(${k},-1)" aria-label="Menos">-</button><span style="font-weight:bold;font-size:13px">${i.qty}</span><button class="qty-btn" onclick="mozoQty(${k},1)" aria-label="Más">+</button></div></div>`).join('')+'</div>':''}
+ <div class="mz-tabs">${cats.map(c=>`<button class="mz-tab ${c[0]===mozoCat?'on':''}" onclick="mozoCat='${c[0]}';renderMozo()">${esc(c[1])}</button>`).join('')}</div>
+ <div class="mz-search"><i class="fas fa-search" style="color:#666"></i><input type="text" placeholder="Buscar producto" aria-label="Buscar producto" value="${esc(mozoQ)}" oninput="mozoQ=this.value;renderMozoMenu()"></div>
+ <div id="mzList"></div>
+ ${m.os.length?`<div class="mz-bill"><div class="tot"><span>Total de la cuenta</span><b>${fmt(m.tot)}</b></div><div class="mz-pay">${MZ_PAYS.map(p=>`<button class="${p===mozoPayVal?'on':''}" onclick="mozoPayVal='${p}';renderMozo()">${p}</button>`).join('')}</div><button class="mz-close" onclick="closeMesa()"><i class="fas fa-check"></i> Cerrar cuenta</button></div>`:''}
+ </div>
+ <div class="mz-dock"><div class="in"><input type="text" id="mozoNotes" placeholder="Observaciones (Ej: sin cebolla)" value="${esc(mozoNotesVal)}" oninput="mozoNotesVal=this.value"><button class="mz-send" onclick="sendToKitchen()" ${mozoCart.length?'':'disabled'}><span><i class="fas fa-paper-plane"></i> Enviar a cocina${pendUnits?' ('+pendUnits+')':''}</span><span>${fmt(pend)}</span></button></div></div>`;
+ renderMozoMenu();
 }
 
 /* --- Navegación y sincronización --- */
