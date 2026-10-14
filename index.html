@@ -158,6 +158,11 @@
         .ad-nav b{flex:1;text-align:center;font-size:14px;text-transform:capitalize}
         .ad-l{display:block;font-size:12px;color:var(--text-secondary);margin:10px 0 4px}
         .obtn.rej{background:#3a1215;color:#ff6068}
+        .mt-row{display:flex;gap:10px;align-items:flex-start;font-size:13px;margin:7px 0;color:#ddd}
+        .mt-row i{width:16px;color:var(--primary-yellow);margin-top:3px;flex-shrink:0}
+        .mt-row a{color:#fff}
+        .ad-pick{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:14px;background:#222;border:1px solid #333;border-radius:12px;color:#fff;cursor:pointer;margin-bottom:8px;font-size:14px;text-align:left}
+        .ad-pick small{color:var(--text-secondary)}
     </style>
 </head>
 <body>
@@ -213,6 +218,7 @@
         <div class="option-title">Datos para la entrega</div>
         <input type="text" id="custName" class="form-input" placeholder="Tu Nombre completo *">
         <input type="text" id="custAddress" class="form-input" placeholder="Dirección de entrega o Barrio *">
+        <input type="tel" id="custPhone" class="form-input" inputmode="tel" placeholder="Tu teléfono / WhatsApp *">
         <div class="option-title">Forma de Pago</div>
         <select id="custPayment" class="form-input" onchange="toggleChangeBox()">
             <option value="Efectivo">Efectivo</option><option value="Transferencia Bancaria">Transferencia Bancaria</option><option value="POS / Tarjeta">POS / Tarjeta</option><option value="PIX">PIX</option>
@@ -231,6 +237,10 @@
 
 <div class="modal-overlay" id="admModal" style="z-index:2100">
     <div class="modal-sheet" id="admModalBody"></div>
+</div>
+
+<div class="fullview" id="motoView">
+    <div id="motoBody"></div>
 </div>
 
 <div class="modal-overlay" id="trackModal">
@@ -312,16 +322,17 @@ function closeCartModal(){document.getElementById('cartModal').style.display='no
 function toggleChangeBox(){document.getElementById('custChange').style.display=document.getElementById('custPayment').value==='Efectivo'?'block':'none'}
 function sendWhatsAppOrder(){
  if(!cart.length){alert('Agrega al menos un producto.');return}
- const name=document.getElementById('custName').value.trim(),address=document.getElementById('custAddress').value.trim(),payment=document.getElementById('custPayment').value,change=document.getElementById('custChange').value.trim(),notes=document.getElementById('custNotes').value.trim();
+ const name=document.getElementById('custName').value.trim(),address=document.getElementById('custAddress').value.trim(),phone=document.getElementById('custPhone').value.trim(),payment=document.getElementById('custPayment').value,change=document.getElementById('custChange').value.trim(),notes=document.getElementById('custNotes').value.trim();
  if(!name||!address){alert('Por favor completa tu Nombre y Dirección.');return}
+ if(phone.replace(/\D/g,'').length<6){alert('Por favor ingresa un teléfono válido para la entrega.');return}
  const totalPrice=cart.reduce((s,i)=>s+i.price*i.qty,0);
- let msg=`🍔 *NUEVO PEDIDO - HAMBURGUELÂNDIA CDE* 🍔\n------------------------------------\n👤 *Cliente:* ${name}\n📍 *Dirección:* ${address}\n------------------------------------\n📋 *RESUMEN DEL PEDIDO:*\n\n`;
+ let msg=`🍔 *NUEVO PEDIDO - HAMBURGUELÂNDIA CDE* 🍔\n------------------------------------\n👤 *Cliente:* ${name}\n📍 *Dirección:* ${address}\n📞 *Teléfono:* ${phone}\n------------------------------------\n📋 *RESUMEN DEL PEDIDO:*\n\n`;
  cart.forEach(item=>msg+=`▪️ ${item.qty}x ${item.title} = *${(item.price*item.qty).toLocaleString()} Gs*\n`);
  msg+=`\n💰 *TOTAL:* *${totalPrice.toLocaleString()} Gs*\n------------------------------------\n💳 *Forma de Pago:* ${payment}\n`;
  if(payment==='Efectivo'&&change)msg+=`💵 *Cambio para:* ${change}\n`;
  if(notes)msg+=`📝 *Notas:* ${notes}\n`;
  msg+=`------------------------------------\n¡Muchas gracias! Quedo atento a la confirmación.`;
- const order=addOrder({type:'delivery',name,address,payment,change,notes,items:cart.map(i=>({title:i.title,price:i.price,qty:i.qty})),total:totalPrice});
+ const order=addOrder({type:'delivery',name,address,phone,payment,change,notes,items:cart.map(i=>({title:i.title,price:i.price,qty:i.qty})),total:totalPrice});
  myOrderId=order.id;try{localStorage.setItem('hcde_my',order.id)}catch(e){}
  window.open(`https://wa.me/5950982194749?text=${encodeURIComponent(msg)}`,'_blank');
  cart=[];updateCartUI();closeCartModal();refreshAll();openTrack();
@@ -330,8 +341,8 @@ function sendWhatsAppOrder(){
    Los pedidos se guardan en el navegador (localStorage), por lo que panel, mozo y cliente
    comparten datos solo en el MISMO dispositivo/navegador. Para varios dispositivos
    hace falta un servidor: basta reemplazar el objeto DB por llamadas a una API. */
-const ST_NAMES=['En análisis','En producción','Listo para entrega','Entregado','Rechazado'];
-const ST_COLORS=['#f59e0b','#e50914','#25d366','#666','#ef4444'];
+const ST_NAMES=['En análisis','En producción','Listo para entrega','Entregado','Rechazado','Cancelado','Falha na entrega'];
+const ST_COLORS=['#f59e0b','#e50914','#25d366','#666','#ef4444','#dc2626','#f97316'];
 const NEXT_LABEL=['Aceptar y producir','Marcar listo','Marcar entregado'];
 const MESAS=12;
 let lastSnap='',myOrderId=0,mozoMesa=null,mozoCart=[],mozoNotesVal='',mozoOpen=false,panelOpen=false;
@@ -354,25 +365,26 @@ function closeTrack(){document.getElementById('trackModal').style.display='none'
 function renderTrack(){
  const o=DB.get().find(x=>x.id===myOrderId),box=document.getElementById('trackBody');
  if(!o){box.innerHTML='<p style="text-align:center;color:#888;padding:20px">Todavía no hiciste ningún pedido.</p>';return}
- if(o.status===4){box.innerHTML=`<div style="font-weight:700">Pedido #${o.id}</div><div style="margin:10px 0;padding:12px;border-radius:12px;background:rgba(239,68,68,.12);color:#ff6068;font-size:13px"><b>Tu pedido fue rechazado.</b><br>${esc(o.reason||'')}</div><p style="font-size:12px;color:#888">Si quieres, puedes hacer un nuevo pedido o escribirnos por WhatsApp.</p>`;return}
- const steps=['Pedido recibido','En preparación','Listo para entrega','Entregado'];
+ if(o.status>=4){box.innerHTML=`<div style="font-weight:700">Pedido #${o.id}</div><div style="margin:10px 0;padding:12px;border-radius:12px;background:rgba(239,68,68,.12);color:#ff6068;font-size:13px"><b>${o.status===4?'Tu pedido fue rechazado.':o.status===5?'Tu pedido fue cancelado.':'No pudimos entregar tu pedido.'}</b><br>${esc(o.reason||'')}</div><p style="font-size:12px;color:#888">Si quieres, puedes hacer un nuevo pedido o escribirnos por WhatsApp.</p>`;return}
+ const dl=o.type==='delivery',steps=dl?['Pedido recibido','En preparación','Listo para entrega','En camino','Entregado']:['Pedido recibido','En preparación','Listo para entrega','Entregado'];
+ const idx=dl?(o.status===3?4:(o.status===2&&o.dts&&o.dts.start?3:o.status)):o.status;
  box.innerHTML=`<div style="font-weight:700">Pedido #${o.id} · ${fmt(o.total)}</div><div style="font-size:12px;color:var(--text-secondary);margin:4px 0 8px">${o.items.map(i=>i.qty+'x '+esc(i.title)).join('<br>')}</div>`+
-  steps.map((t,k)=>`<div class="tstep ${k<=o.status?'done':''}"><i>${k<=o.status?'<i class="fas fa-check" style="border:0;width:auto;height:auto;font-size:11px"></i>':''}</i><span>${t}</span></div>`).join('')+
-  '<p style="font-size:11px;color:#777;margin-top:8px">El estado se actualiza solo cuando el local avanza tu pedido.</p>';
+  steps.map((t,k)=>`<div class="tstep ${k<=idx?'done':''}"><i>${k<=idx?'<i class="fas fa-check" style="border:0;width:auto;height:auto;font-size:11px"></i>':''}</i><span>${t}</span></div>`).join('')+
+  (o.status<=1?'<button class="obtn alt" style="width:100%;margin-top:6px;padding:12px" onclick="custCancel()">Cancelar mi pedido</button>':'')+'<p style="font-size:11px;color:#777;margin-top:8px">El estado se actualiza solo cuando el local avanza tu pedido.</p>';
 }
 function updateChip(){
  const o=DB.get().find(x=>x.id===myOrderId),c=document.getElementById('trackChip');
- const rej=o&&o.status===4&&localStorage.getItem('hcde_rejseen')!==String(o.id);
+ const rej=o&&o.status>=4&&localStorage.getItem('hcde_rejseen')!==String(o.id);
  if(o&&(o.status<3||rej)){c.style.display='block';c.innerHTML=`<i class="fas fa-receipt"></i> Pedido #${o.id} · ${ST_NAMES[o.status]}`}else c.style.display='none';
 }
 
 /* --- Panel de pedidos --- */
 function orderCard(o){
  const donde=o.type==='mesa'?`<b>Mesa ${o.mesa}</b>`:`<b>Delivery</b> · ${esc(o.name)}`;
- const act=o.status===1?`<button class="obtn" onclick="kitchenReady(${o.id})">Marcar listo</button>`:`<div class="pempty" style="flex:1;padding:8px 0">${o.status===0?'Esperando aprobación del administrador':'Listo · esperando entrega'}</div>`;
+ const act=o.status===1?`<button class="obtn" onclick="kitchenReady(${o.id})">Marcar listo</button>`:`<div class="pempty" style="flex:1;padding:8px 0">${o.status===0?'Esperando aprobación del administrador':(o.dts&&o.dts.start?'En entrega':'Listo · esperando entrega')}</div>`;
  return `<div class="ocard"><div class="ohead"><b>#${o.id}</b> ${donde}<span>${hora(o.at)}</span></div>
  <div class="oitems">${o.items.map(i=>i.qty+'x '+esc(i.title)).join('<br>')}</div>
- ${o.type==='delivery'?`<div class="ometa">📍 ${esc(o.address)}<br>💳 ${esc(o.payment)}${o.change?' · cambio '+esc(o.change):''}</div>`:''}
+ ${o.type==='delivery'?`<div class="ometa">📍 ${esc(o.address)}${o.phone?'<br>📞 '+esc(o.phone):''}<br>💳 ${esc(o.payment)}${o.change?' · cambio '+esc(o.change):''}</div>`:''}
  ${o.notes?`<div class="ometa">📝 ${esc(o.notes)}</div>`:''}
  <div class="ototal">${fmt(o.total)}</div>
  <div class="oact">${act}<button class="obtn alt" onclick="printTicket(${o.id})" aria-label="Imprimir comanda"><i class="fas fa-print"></i></button></div></div>`;
@@ -393,7 +405,7 @@ function printTicket(id){
  <div><b>COMANDA #${o.id}</b><br>${o.type==='mesa'?'MESA '+o.mesa:'DELIVERY'}<br>${new Date(o.at).toLocaleString()}</div><hr>
  ${o.items.map(i=>`<div class="r"><span>${i.qty}x ${esc(i.title)}</span><span>${fmt(i.price*i.qty)}</span></div>`).join('')}<hr>
  <div class="r"><b>TOTAL</b><b>${fmt(o.total)}</b></div>
- ${o.type==='delivery'?`<hr>Cliente: ${esc(o.name)}<br>Dir: ${esc(o.address)}<br>Pago: ${esc(o.payment)}${o.change?'<br>Cambio: '+esc(o.change):''}`:''}
+ ${o.type==='delivery'?`<hr>Cliente: ${esc(o.name)}<br>Dir: ${esc(o.address)}${o.phone?'<br>Tel: '+esc(o.phone):''}<br>Pago: ${esc(o.payment)}${o.change?'<br>Cambio: '+esc(o.change):''}`:''}
  ${o.notes?`<hr>Obs: ${esc(o.notes)}`:''}
  </body></html>`);d.close();
  setTimeout(()=>{f.contentWindow.focus();f.contentWindow.print();setTimeout(()=>f.remove(),2000)},300);
@@ -418,7 +430,7 @@ let mozoCat='all',mozoQ='',mozoPayVal='Efectivo';
 const MZ_PAYS=['Efectivo','Transferencia Bancaria','POS / Tarjeta','PIX'];
 const mins=t=>{const m=Math.max(0,Math.round((Date.now()-t)/60000));return m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min'};
 function mesaInfo(n){
- const all=mesaOrders(n),os=all.filter(o=>o.status!==4),rej=all.filter(o=>o.status===4);
+ const all=mesaOrders(n),os=all.filter(o=>o.status<4),rej=all.filter(o=>o.status>=4);
  return {os,rej,tot:os.reduce((s,o)=>s+o.total,0),units:os.reduce((s,o)=>s+o.items.reduce((a,i)=>a+i.qty,0),0),ready:os.some(o=>o.status===2),cooking:os.some(o=>o.status<2),since:os.length?os[0].at:0,waiter:(os[0]&&os[0].waiter)||''};
 }
 function mozoTop(title,sub,back){
@@ -449,7 +461,7 @@ function renderMozo(){
  const cats=[['all','Todo']].concat(menuData.map(c=>[c.category,c.catName.replace(/^\S+\s+/,'')]));
  b.innerHTML=mozoTop('Mesa '+mozoMesa,m.os.length?`Abierta hace ${mins(m.since)} · ${fmt(m.tot)}`:'Mesa libre',true)+
  `<div class="mz-wrap">
- ${(m.os.length+m.rej.length)?'<div class="mz-sec" style="margin-top:4px">Pedidos en cocina</div>'+m.os.concat(m.rej).map(o=>`<div class="mz-order"><div class="h"><b>#${o.id} · ${hora(o.at)}</b><span class="mz-badge" style="background:${ST_COLORS[o.status]}2b;color:${ST_COLORS[o.status]}">${ST_NAMES[o.status]}</span></div><ul>${o.items.map(i=>`<li>${i.qty}x ${esc(i.title)}</li>`).join('')}</ul>${o.notes?`<div class="f"><span>📝 ${esc(o.notes)}</span></div>`:''}${o.status===4?`<div class="f"><span>Rechazado: ${esc(o.reason||'')}</span></div>`:`<div class="f"><span>Subtotal</span><b style="color:#fff">${fmt(o.total)}</b></div>`}</div>`).join(''):''}
+ ${(m.os.length+m.rej.length)?'<div class="mz-sec" style="margin-top:4px">Pedidos en cocina</div>'+m.os.concat(m.rej).map(o=>`<div class="mz-order"><div class="h"><b>#${o.id} · ${hora(o.at)}</b><span class="mz-badge" style="background:${ST_COLORS[o.status]}2b;color:${ST_COLORS[o.status]}">${ST_NAMES[o.status]}</span></div><ul>${o.items.map(i=>`<li>${i.qty}x ${esc(i.title)}</li>`).join('')}</ul>${o.notes?`<div class="f"><span>📝 ${esc(o.notes)}</span></div>`:''}${o.status>=4?`<div class="f"><span>${ST_NAMES[o.status]}: ${esc(o.reason||'')}</span></div>`:`<div class="f"><span>Subtotal</span><b style="color:#fff">${fmt(o.total)}</b></div>`}</div>`).join(''):''}
  <div class="mz-sec" ${m.os.length?'':'style="margin-top:4px"'}>Nueva comanda</div>
  ${mozoCart.length?'<div class="mz-pend">'+mozoCart.map((i,k)=>`<div class="cart-item-row"><div><div style="font-weight:700;font-size:13px">${esc(i.title)}</div><div style="color:var(--primary-yellow);font-size:12px">${fmt(i.price*i.qty)}</div></div><div style="display:flex;align-items:center;gap:8px"><button class="qty-btn" onclick="mozoQty(${k},-1)" aria-label="Menos">-</button><span style="font-weight:bold;font-size:13px">${i.qty}</span><button class="qty-btn" onclick="mozoQty(${k},1)" aria-label="Más">+</button></div></div>`).join('')+'</div>':''}
  <div class="mz-tabs">${cats.map(c=>`<button class="mz-tab ${c[0]===mozoCat?'on':''}" onclick="mozoCat='${c[0]}';renderMozo()">${esc(c[1])}</button>`).join('')}</div>
@@ -523,15 +535,16 @@ function rangeLabel(mode,a,b){
 function stats(a,b){
  const os=DB.get().filter(o=>o.at>=a&&o.at<b),sales=os.filter(sale),total=sales.reduce((s,o)=>s+o.total,0);
  const add=(m,k,v)=>{(m[k]=m[k]||{n:0,v:0});m[k].n++;m[k].v+=v};
- const byChannel={Delivery:{n:0,v:0},Mesa:{n:0,v:0}},byPay={},byWaiter={},prod={};
+ const byChannel={Delivery:{n:0,v:0},Mesa:{n:0,v:0}},byPay={},byWaiter={},byMoto={},prod={};
  sales.forEach(o=>{
   add(byChannel,o.type==='mesa'?'Mesa':'Delivery',o.total);
   add(byPay,o.type==='mesa'?(o.paid||'Cuenta abierta'):(o.payment||'—'),o.total);
   if(o.type==='mesa')add(byWaiter,o.waiter||'Sin nombre',o.total);
+  if(o.status===3&&o.moto)add(byMoto,motoName(o.moto),o.total);
   o.items.forEach(i=>{const k=i.title.replace(/\s\((Simple|Doble)\).*$/,'');(prod[k]=prod[k]||{q:0,v:0});prod[k].q+=i.qty;prod[k].v+=i.qty*i.price});
  });
  const rd=sales.filter(o=>o.ts&&o.ts[2]).map(o=>o.ts[2]-o.at);
- return {os,sales,total,count:sales.length,avg:sales.length?total/sales.length:0,rej:os.filter(o=>o.status===4),byChannel,byPay,byWaiter,prod,avgReady:rd.length?rd.reduce((x,y)=>x+y,0)/rd.length:0};
+ return {os,sales,total,count:sales.length,avg:sales.length?total/sales.length:0,rej:os.filter(o=>o.status===4),canc:os.filter(o=>o.status===5),fail:os.filter(o=>o.status===6),byChannel,byPay,byWaiter,byMoto,prod,avgReady:rd.length?rd.reduce((x,y)=>x+y,0)/rd.length:0};
 }
 function series(mode,a,b,sales){
  if(mode==='day'){
@@ -610,25 +623,30 @@ function delItem(id){
 /* pestañas */
 function admActs(o){
  const b=(fn,l,c)=>`<button class="obtn ${c||''}" onclick="${fn}(${o.id})">${l}</button>`;
+ const dl=o.type==='delivery',started=!!(o.dts&&o.dts.start);
  let a='';
  if(o.status===0)a=b('advance','Aceptar')+b('admReject','Rechazar','rej');
- else if(o.status===1)a=b('advance','Marcar listo');
- else if(o.status===2)a=b('advance','Marcar entregado');
+ else if(o.status===1){a=b('advance','Marcar listo');if(dl&&!started)a+=b('admAssign',o.moto?'Reasignar':'Asignar motoboy')}
+ else if(o.status===2){
+  if(!dl)a=b('advance','Marcar entregado');
+  else if(!started){a=b('admAssign',o.moto?'Reasignar':'Asignar motoboy');if(!motos().length)a+=b('advance','Marcar entregado')}
+ }
+ if(o.status===1||o.status===2)a+=b('admCancel','Cancelar','rej');
  return a+`<button class="obtn alt" onclick="printTicket(${o.id})" aria-label="Imprimir comanda"><i class="fas fa-print"></i></button>`;
 }
 function admOrderCard(o){
  const donde=o.type==='mesa'?`<b>Mesa ${o.mesa}</b>${o.waiter?' · '+esc(o.waiter):''}`:`<b>Delivery</b> · ${esc(o.name)}`;
  return `<div class="ocard"><div class="ohead"><b>#${o.id}</b> ${donde}<span>${hora(o.at)} · hace ${mins(o.at)}</span></div>
  <div class="oitems">${o.items.map(i=>i.qty+'x '+esc(i.title)).join('<br>')}</div>
- ${o.type==='delivery'?`<div class="ometa">📍 ${esc(o.address)}<br>💳 ${esc(o.payment)}${o.change?' · cambio '+esc(o.change):''}</div>`:''}
+ ${o.type==='delivery'?`<div class="ometa">📍 ${esc(o.address)}${o.phone?'<br>📞 '+esc(o.phone):''}<br>💳 ${esc(o.payment)}${o.change?' · cambio '+esc(o.change):''}</div>`:''}
  ${o.notes?`<div class="ometa">📝 ${esc(o.notes)}</div>`:''}
- <div class="ototal">${fmt(o.total)}</div><div class="oact">${admActs(o)}</div></div>`;
+ ${o.type==='delivery'?delLine(o):''}<div class="ototal">${fmt(o.total)}</div><div class="oact">${admActs(o)}</div></div>`;
 }
 function admDash(){
  const [a,b]=rangeOf('day',0),s=stats(a,b),all=DB.get();
  const live=[0,1,2].map(k=>all.filter(o=>o.status===k).length),done=s.os.filter(o=>o.status===3).length;
  const open=Array.from({length:MESAS},(_,i)=>mesaInfo(i+1)).filter(m=>m.os.length).length;
- const steps=[['En análisis',live[0],ST_COLORS[0]],['En producción',live[1],ST_COLORS[1]],['Listo para entrega',live[2],ST_COLORS[2]],['Entregados hoy',done,'#888'],['Rechazados hoy',s.rej.length,ST_COLORS[4]]];
+ const steps=[['En análisis',live[0],ST_COLORS[0]],['En producción',live[1],ST_COLORS[1]],['Listo para entrega',live[2],ST_COLORS[2]],['Entregados hoy',done,'#888'],['Rechazados hoy',s.rej.length,ST_COLORS[4]],['Cancelados hoy',s.canc.length,ST_COLORS[5]],['Falhas na entrega hoy',s.fail.length,ST_COLORS[6]]];
  return `<div class="ad-kpis">${kpi('Ventas de hoy',fmt(s.total),'var(--primary-yellow)')}${kpi('Pedidos de hoy',s.count)}${kpi('Ticket promedio',fmt(Math.round(s.avg)))}${kpi('Mesas abiertas',open+' / '+MESAS)}${kpi('Tiempo medio hasta "Listo"',s.avgReady?Math.round(s.avgReady/60000)+' min':'—')}</div>
  <div class="mz-sec" style="margin-top:0">Flujo de pedidos</div>
  <div class="ad-flow">${steps.map(t=>`<div class="ad-step" style="border-top-color:${t[2]}"><b>${t[1]}</b><small>${t[0]}</small></div>`).join('')}</div>
@@ -638,7 +656,7 @@ function admDash(){
 function admPed(){
  const all=DB.get(),act=all.filter(o=>o.status<3);
  const cols=[0,1,2].map(s=>{const l=act.filter(o=>o.status===s);return `<div class="pcol"><div class="pcol-h" style="background:${ST_COLORS[s]}">${ST_NAMES[s]} (${l.length})</div>${l.length?l.map(admOrderCard).join(''):'<p class="pempty">Sin pedidos.</p>'}</div>`}).join('');
- const [a,b]=rangeOf('day',0),hist=all.filter(o=>o.at>=a&&o.at<b&&(o.status===3||o.status===4)).sort((x,y)=>y.at-x.at).slice(0,20);
+ const [a,b]=rangeOf('day',0),hist=all.filter(o=>o.at>=a&&o.at<b&&o.status>=3).sort((x,y)=>y.at-x.at).slice(0,20);
  return `<div class="pgrid" style="padding:0">${cols}</div><div class="ad-card" style="margin-top:12px"><h4>Cerrados hoy</h4>${hist.length?hist.map(o=>li(`<b>#${o.id}</b> · ${o.type==='mesa'?'Mesa '+o.mesa:'Delivery'} · <span style="color:${ST_COLORS[o.status]}">${ST_NAMES[o.status]}</span>${o.status===4&&o.reason?'<br><small style="color:#888">'+esc(o.reason)+'</small>':''}`,fmt(o.total))).join(''):'<p class="pempty">Sin pedidos cerrados.</p>'}</div>`;
 }
 function admSelMesa(n){admMesa=n;admPayVal='Efectivo';renderAdmin()}
@@ -659,7 +677,7 @@ function admCom(){
 function admMesaDetail(){
  const m=mesaInfo(admMesa),list=m.os.concat(m.rej);
  return `<div class="ad-row"><button class="obtn alt" onclick="admMesa=null;renderAdmin()"><i class="fas fa-arrow-left"></i> Mesas</button><b>Mesa ${admMesa}${m.waiter?' · '+esc(m.waiter):''}</b></div>`+
- (list.length?list.map(o=>`<div class="mz-order"><div class="h"><b>#${o.id} · ${hora(o.at)}</b><span class="mz-badge" style="background:${ST_COLORS[o.status]}2b;color:${ST_COLORS[o.status]}">${ST_NAMES[o.status]}</span></div><ul>${o.items.map(i=>`<li>${i.qty}x ${esc(i.title)}</li>`).join('')}</ul>${o.notes?`<div class="f"><span>📝 ${esc(o.notes)}</span></div>`:''}${o.status===4?`<div class="f"><span>Rechazado: ${esc(o.reason||'')}</span></div>`:`<div class="f"><span>Subtotal</span><b style="color:#fff">${fmt(o.total)}</b></div><div class="oact" style="margin-top:8px">${admActs(o)}</div>`}</div>`).join(''):'<p class="pempty">Mesa libre, sin pedidos.</p>')+
+ (list.length?list.map(o=>`<div class="mz-order"><div class="h"><b>#${o.id} · ${hora(o.at)}</b><span class="mz-badge" style="background:${ST_COLORS[o.status]}2b;color:${ST_COLORS[o.status]}">${ST_NAMES[o.status]}</span></div><ul>${o.items.map(i=>`<li>${i.qty}x ${esc(i.title)}</li>`).join('')}</ul>${o.notes?`<div class="f"><span>📝 ${esc(o.notes)}</span></div>`:''}${o.status>=4?`<div class="f"><span>${ST_NAMES[o.status]}: ${esc(o.reason||'')}</span></div>`:`<div class="f"><span>Subtotal</span><b style="color:#fff">${fmt(o.total)}</b></div><div class="oact" style="margin-top:8px">${admActs(o)}</div>`}</div>`).join(''):'<p class="pempty">Mesa libre, sin pedidos.</p>')+
  (m.os.length?consumoHtml(m.os,m.tot)+`<div class="mz-bill" style="margin-top:12px"><div class="mz-pay">${MZ_PAYS.map(p=>`<button class="${p===admPayVal?'on':''}" onclick="admPayVal='${p}';renderAdmin()">${p}</button>`).join('')}</div><button class="obtn alt" style="width:100%;margin-bottom:8px;padding:12px" onclick="printBill(${admMesa})"><i class="fas fa-print"></i> Imprimir cuenta</button><button class="mz-close" onclick="admCloseMesa()"><i class="fas fa-check"></i> Cerrar cuenta</button></div>`:'');
 }
 function admMenu(){
@@ -672,31 +690,218 @@ function admReport(){
  const [a,b]=rangeOf(repMode,repOff),s=stats(a,b);
  return `<div class="mz-tabs" style="margin-top:0">${[['day','Día'],['week','Semana'],['month','Mes']].map(m=>`<button class="mz-tab ${m[0]===repMode?'on':''}" onclick="repSet('${m[0]}')">${m[1]}</button>`).join('')}</div>
  <div class="ad-nav"><button class="mz-ic" onclick="repGo(-1)" aria-label="Anterior"><i class="fas fa-chevron-left"></i></button><b>${rangeLabel(repMode,a,b)}</b><button class="mz-ic" onclick="repGo(1)" ${repOff>=0?'disabled style="opacity:.35"':''} aria-label="Siguiente"><i class="fas fa-chevron-right"></i></button></div>
- <div class="ad-kpis">${kpi('Ventas',fmt(s.total),'var(--primary-yellow)')}${kpi('Pedidos',s.count)}${kpi('Ticket promedio',fmt(Math.round(s.avg)))}${kpi('Rechazados',s.rej.length,s.rej.length?ST_COLORS[4]:'')}</div>
+ <div class="ad-kpis">${kpi('Ventas',fmt(s.total),'var(--primary-yellow)')}${kpi('Pedidos',s.count)}${kpi('Ticket promedio',fmt(Math.round(s.avg)))}${kpi('Rechazados',s.rej.length,s.rej.length?ST_COLORS[4]:'')}${kpi('Cancelados',s.canc.length,s.canc.length?ST_COLORS[5]:'')}${kpi('Falhas na entrega',s.fail.length,s.fail.length?ST_COLORS[6]:'')}</div>
  <div class="ad-card"><h4>${repMode==='day'?'Ventas por hora':'Ventas por día'}</h4>${bars(series(repMode,a,b,s.sales))}</div>
  <div class="ad-grid2"><div class="ad-card"><h4>Por canal</h4>${objList(s.byChannel)}</div><div class="ad-card"><h4>Por forma de pago</h4>${objList(s.byPay)}</div></div>
- <div class="ad-grid2"><div class="ad-card"><h4>Por mozo</h4>${objList(s.byWaiter)}</div><div class="ad-card"><h4>Productos más vendidos</h4>${topList(s.prod,10)}</div></div>`;
+ <div class="ad-grid2"><div class="ad-card"><h4>Por mozo</h4>${objList(s.byWaiter)}</div><div class="ad-card"><h4>Entregas por motoboy</h4>${objList(s.byMoto)}</div></div>
+ <div class="ad-card"><h4>Productos más vendidos</h4>${topList(s.prod,10)}</div>`;
 }
 function admGo(t){admTab=t;admMesa=null;renderAdmin();document.getElementById('adminView').scrollTop=0}
 function renderAdmin(){
  const pend=DB.get().filter(o=>o.status===0).length;
- const tabs=[['dash','Dashboard'],['ped','Pedidos'+(pend?' ('+pend+')':'')],['com','Comandas'],['menu','Menú'],['rep','Reportes']];
- const body={dash:admDash,ped:admPed,com:admCom,menu:admMenu,rep:admReport}[admTab]();
+ const tabs=[['dash','Dashboard'],['ped','Pedidos'+(pend?' ('+pend+')':'')],['com','Comandas'],['menu','Menú'],['mot','Motoboys'],['rep','Reportes']];
+ const body={dash:admDash,ped:admPed,com:admCom,menu:admMenu,mot:admMot,rep:admReport}[admTab]();
  document.getElementById('adminBody').innerHTML=`<div class="mz-bar"><div class="mz-ic" style="background:var(--primary);border-color:var(--primary)"><i class="fas fa-user-shield"></i></div><div class="ttl"><b>Administración</b><small>Hamburguelândia CDE</small></div><button class="mz-ic" onclick="location.hash=''" aria-label="Salir"><i class="fas fa-right-from-bracket"></i></button></div>
  <div class="ad-tabs">${tabs.map(t=>`<button class="mz-tab ${t[0]===admTab?'on':''}" onclick="admGo('${t[0]}')">${t[1]}</button>`).join('')}</div><div class="ad-wrap">${body}</div>`;
+}
+
+/* ===== MOTOBOY (#moto) y flujo de entrega =====
+   Estados de entrega: Pendente -> Atribuído -> Em entrega -> Concluída
+   Alternativos: Cancelado (restaurante o cliente) y Falha na entrega (con motivo).
+   Aviso: la separación por motoboy se aplica en la lógica de esta página. La seguridad real
+   (que nadie pueda leer/alterar entregas ajenas) exige reglas en el servidor. */
+let motoOpen=false,motoMe='',motoTab='act',failId=0,failReason='',failNote='',cnId=0,cnBy='Restaurante',cnReason='',cnNote='';
+try{motoMe=localStorage.getItem('hcde_moto')||''}catch(e){}
+const CANC=['Cliente desistió','Sin stock','Error en el pedido','Problema en la cocina','Otro motivo'];
+const FAILS=['Cliente no responde','Dirección no encontrada','Cliente ausente','Cliente rechazó el pedido','Problema con el vehículo','Otro motivo'];
+const motos=()=>{try{return JSON.parse(localStorage.getItem('hcde_motos')||'[]')}catch(e){return[]}};
+const saveMotos=a=>{try{localStorage.setItem('hcde_motos',JSON.stringify(a))}catch(e){}};
+const motoName=id=>{const m=motos().find(x=>x.id===id);return m?m.name:'—'};
+const fdt=t=>t?new Date(t).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+function delLabel(o){
+ if(o.status===4)return ['Rechazado',ST_COLORS[4]];
+ if(o.status===5)return ['Cancelado',ST_COLORS[5]];
+ if(o.status===6)return ['Falha na entrega',ST_COLORS[6]];
+ if(o.status===3)return ['Concluída','#25d366'];
+ if(o.dts&&o.dts.start)return ['Em entrega','#3b82f6'];
+ if(o.moto)return ['Atribuído','#a855f7'];
+ return ['Pendente','#f59e0b'];
+}
+function delLine(o){
+ const l=delLabel(o);
+ return `<div class="ometa">🛵 <b style="color:${l[1]}">${l[0]}</b>${o.moto?' · '+esc(motoName(o.moto)):''}${o.dts&&o.dts.start?' · salió '+hora(o.dts.start):''}</div>`;
+}
+function motoStats(id){
+ const os=DB.get().filter(o=>o.type==='delivery'&&o.moto===id&&o.status===3&&o.dts&&o.dts.end);
+ return ['day','week','month'].map(m=>{const r=rangeOf(m,0),l=os.filter(o=>o.dts.end>=r[0]&&o.dts.end<r[1]);return {n:l.length,v:l.reduce((s,o)=>s+o.total,0)}});
+}
+
+/* --- cliente: cancelar su pedido --- */
+function custCancel(){
+ if(!confirm('¿Seguro que quieres cancelar tu pedido?'))return;
+ const all=DB.get(),o=all.find(x=>x.id===myOrderId);
+ if(o&&o.status<=1&&!(o.dts&&o.dts.start)){o.status=5;o.by='Cliente';o.reason='Cancelado por el cliente';o.dts=o.dts||{};o.dts.canc=Date.now();o.ts=o.ts||{};o.ts[5]=Date.now();DB.set(all)}
+ refreshAll();
+}
+
+/* --- ADM: asignar motoboy y cancelar --- */
+function admAssign(id){
+ const ms=motos().filter(m=>m.active),all=DB.get();
+ openAdmModal(`<button class="sheet-close" onclick="closeAdmModal()">&times;</button><h3 style="font-size:18px;margin-bottom:12px">Asignar pedido #${id}</h3>`+
+ (ms.length?ms.map(m=>{const n=all.filter(o=>o.moto===m.id&&(o.status===1||o.status===2)).length;return `<button class="ad-pick" onclick="assignTo(${id},'${m.id}')"><b>${esc(m.name)}</b><small>${n} entrega(s) en curso</small></button>`}).join(''):'<p class="pempty">No hay motoboys activos. Crea uno en la pestaña Motoboys.</p>'));
+}
+function assignTo(id,mid){
+ const all=DB.get(),o=all.find(x=>x.id===id);
+ if(o&&o.type==='delivery'&&(o.status===1||o.status===2)&&!(o.dts&&o.dts.start)&&motos().some(m=>m.id===mid&&m.active)){o.moto=mid;o.dts=o.dts||{};o.dts.asig=Date.now();DB.set(all)}
+ closeAdmModal();refreshAll();
+}
+function cnHtml(){
+ return `<button class="sheet-close" onclick="closeAdmModal()">&times;</button><h3 style="font-size:18px;margin-bottom:6px">Cancelar pedido #${cnId}</h3>
+ <label class="ad-l">¿Quién cancela?</label><div class="mz-pay">${['Restaurante','Cliente'].map(w=>`<button class="${w===cnBy?'on':''}" onclick="cnBy='${w}';openAdmModal(cnHtml())">${w}</button>`).join('')}</div>
+ <label class="ad-l">Motivo</label><div class="mz-pay" style="grid-template-columns:1fr">${CANC.map(r=>`<button class="${r===cnReason?'on':''}" data-r="${r}" onclick="cnReason=this.dataset.r;openAdmModal(cnHtml())">${r}</button>`).join('')}</div>
+ <input type="text" class="form-input" placeholder="Detalle (opcional)" value="${esc(cnNote)}" oninput="cnNote=this.value">
+ <button class="mz-close" style="background:var(--primary)" onclick="confirmCancel()">Confirmar cancelación</button>`;
+}
+function admCancel(id){cnId=id;cnBy='Restaurante';cnReason=CANC[0];cnNote='';openAdmModal(cnHtml())}
+function confirmCancel(){
+ const all=DB.get(),o=all.find(x=>x.id===cnId);
+ if(o&&(o.status===1||o.status===2)){o.status=5;o.by=cnBy;o.reason=cnReason+(cnNote.trim()?': '+cnNote.trim().replace(/[<>]/g,''):'')+' ('+cnBy+')';o.dts=o.dts||{};o.dts.canc=Date.now();o.ts=o.ts||{};o.ts[5]=Date.now();DB.set(all)}
+ closeAdmModal();refreshAll();
+}
+
+/* --- ADM: cadastro de motoboys --- */
+function admMot(){
+ const ms=motos(),all=DB.get();
+ return `<div class="ad-row"><b>Motoboys</b><button class="obtn" style="flex:0 0 auto" onclick="editMoto('')"><i class="fas fa-plus"></i> Nuevo motoboy</button></div>`+
+ (ms.length?ms.map(m=>{
+  const st=motoStats(m.id),open=all.filter(o=>o.moto===m.id&&(o.status===1||o.status===2)).length;
+  return `<div class="ad-card"><div class="ad-row" style="margin-bottom:10px"><div><b>${esc(m.name)}</b>${m.active?'':' <span class="mz-badge">Inactivo</span>'}<br><small style="color:#888">${open} entrega(s) en curso${m.phone?' · '+esc(m.phone):''}</small></div><button class="mz-ic" onclick="editMoto('${m.id}')" aria-label="Editar ${esc(m.name)}"><i class="fas fa-pen"></i></button></div>
+  <div class="ad-kpis" style="margin:0">${kpi('Concluidas hoy',st[0].n)}${kpi('Esta semana',st[1].n)}${kpi('Este mes',st[2].n)}</div></div>`}).join(''):'<p class="pempty">Todavía no hay motoboys. Agrega el primero para poder asignar entregas.</p>');
+}
+function editMoto(id){
+ const m=motos().find(x=>x.id===id)||null;
+ openAdmModal(`<button class="sheet-close" onclick="closeAdmModal()">&times;</button><h3 style="font-size:18px;margin-bottom:6px">${m?'Editar motoboy':'Nuevo motoboy'}</h3>
+ <label class="ad-l">Nombre</label><input class="form-input" id="mName" value="${m?esc(m.name):''}">
+ <label class="ad-l">Teléfono — opcional</label><input class="form-input" id="mPhone" type="tel" value="${m?esc(m.phone||''):''}">
+ <label class="ad-l">PIN de acceso (4 a 6 números)</label><input class="form-input" id="mPin" inputmode="numeric" maxlength="6" value="${m?esc(m.pin):''}">
+ <label class="radio-option" style="margin-bottom:10px"><span>Activo</span><input type="checkbox" id="mAct" ${!m||m.active?'checked':''}></label>
+ <p id="mErr" style="color:#ff6068;font-size:12px;min-height:16px;margin-bottom:8px"></p>
+ <button class="mz-close" style="background:var(--primary)" onclick="saveMoto('${id}')">Guardar</button>
+ ${m?`<button class="obtn alt" style="width:100%;margin-top:8px;padding:12px" onclick="delMoto('${id}')">Eliminar motoboy</button>`:''}`);
+}
+function saveMoto(id){
+ const v=k=>document.getElementById(k).value.trim(),err=t=>{document.getElementById('mErr').textContent=t};
+ const name=v('mName').replace(/[<>]/g,''),phone=v('mPhone').replace(/[<>]/g,''),pin=v('mPin'),active=document.getElementById('mAct').checked;
+ if(!name)return err('Escribe el nombre.');
+ if(!/^\d{4,6}$/.test(pin))return err('El PIN debe tener de 4 a 6 números.');
+ const ms=motos(),m=ms.find(x=>x.id===id);
+ if(m){m.name=name;m.phone=phone;m.pin=pin;m.active=active}else ms.push({id:'m'+Date.now(),name,phone,pin,active});
+ saveMotos(ms);
+ if(m&&!active){const all=DB.get();all.forEach(o=>{if(o.moto===m.id&&(o.status===1||o.status===2)&&!(o.dts&&o.dts.start))o.moto=''});DB.set(all)}
+ closeAdmModal();renderAdmin();
+}
+function delMoto(id){
+ if(!confirm('¿Eliminar este motoboy? Sus entregas sin iniciar volverán a "Pendente".'))return;
+ saveMotos(motos().filter(m=>m.id!==id));
+ const all=DB.get();all.forEach(o=>{if(o.moto===id&&(o.status===1||o.status===2)&&!(o.dts&&o.dts.start))o.moto=''});DB.set(all);
+ closeAdmModal();renderAdmin();
+}
+
+/* --- Motoboy: sesión y acciones (solo sobre entregas propias) --- */
+function motoCur(){return motos().find(x=>x.id===motoMe&&x.active)||null}
+function motoLogin(){
+ const id=document.getElementById('mtSel').value,pin=document.getElementById('mtPin').value.trim(),m=motos().find(x=>x.id===id&&x.active);
+ if(!m||m.pin!==pin){document.getElementById('mtErr').textContent='PIN incorreto.';return}
+ motoMe=m.id;try{localStorage.setItem('hcde_moto',m.id)}catch(e){}motoTab='act';renderMoto();
+}
+function motoLogout(){motoMe='';try{localStorage.removeItem('hcde_moto')}catch(e){}if(location.hash==='#moto')location.hash='';else renderMoto()}
+function motoOwn(id){
+ const m=motoCur();if(!m)return null;
+ const all=DB.get(),o=all.find(x=>x.id===id);
+ return (o&&o.type==='delivery'&&o.moto===m.id)?{all,o}:null;
+}
+function motoStart(id){
+ const r=motoOwn(id);if(!r)return;const o=r.o;
+ if(o.status!==2||(o.dts&&o.dts.start))return;
+ o.dts=o.dts||{};o.dts.start=Date.now();DB.set(r.all);refreshAll();
+}
+function motoFinish(id){
+ const r=motoOwn(id);if(!r)return;const o=r.o;
+ if(o.status!==2||!(o.dts&&o.dts.start))return;
+ o.status=3;o.dts.end=Date.now();o.ts=o.ts||{};o.ts[3]=o.dts.end;DB.set(r.all);refreshAll();
+}
+function failHtml(){
+ return `<button class="sheet-close" onclick="closeAdmModal()">&times;</button><h3 style="font-size:18px;margin-bottom:4px">Falha na entrega · #${failId}</h3><p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">Informe o motivo.</p>
+ <div class="mz-pay" style="grid-template-columns:1fr">${FAILS.map(r=>`<button class="${r===failReason?'on':''}" data-r="${r}" onclick="failReason=this.dataset.r;openAdmModal(failHtml())">${r}</button>`).join('')}</div>
+ <input type="text" class="form-input" placeholder="Detalhe (opcional)" value="${esc(failNote)}" oninput="failNote=this.value">
+ <button class="mz-close" style="background:#f97316" onclick="confirmFail()">Registrar falha</button>`;
+}
+function motoFail(id){
+ const r=motoOwn(id);if(!r||!(r.o.dts&&r.o.dts.start)||r.o.status!==2)return;
+ failId=id;failReason=FAILS[0];failNote='';openAdmModal(failHtml());
+}
+function confirmFail(){
+ const r=motoOwn(failId);
+ if(r&&r.o.status===2&&r.o.dts&&r.o.dts.start){const o=r.o;o.status=6;o.reason=failReason+(failNote.trim()?': '+failNote.trim().replace(/[<>]/g,''):'');o.dts.fail=Date.now();o.ts=o.ts||{};o.ts[6]=o.dts.fail;DB.set(r.all)}
+ closeAdmModal();refreshAll();
+}
+function motoCard(o){
+ const d=o.dts||{},l=delLabel(o),tel=(o.phone||'').replace(/[^\d+]/g,'');
+ const act=!d.start
+  ?(o.status===2?`<button class="mz-close" style="background:#3b82f6" onclick="motoStart(${o.id})"><i class="fas fa-motorcycle"></i> Iniciar entrega</button>`:`<button class="mz-close" style="background:#2a2a2a;color:#888;cursor:not-allowed" disabled>Aguardando o preparo do pedido</button>`)
+  :`<div style="display:flex;gap:8px"><button class="mz-close" onclick="motoFinish(${o.id})"><i class="fas fa-check"></i> Finalizar entrega</button><button class="obtn alt" style="background:#3a1a0a;color:#f97316;padding:0 16px" onclick="motoFail(${o.id})">Falha</button></div>`;
+ return `<div class="mz-order"><div class="h"><b>Pedido #${o.id}</b><span class="mz-badge" style="background:${l[1]}2b;color:${l[1]}">${l[0]}</span></div>
+ <div style="font-size:16px;font-weight:700;margin-bottom:4px">${esc(o.name)}</div>
+ <div class="mt-row"><i class="fas fa-phone"></i>${tel?`<a href="tel:${tel}">${esc(o.phone)}</a>`:'Sem telefone'}</div>
+ <div class="mt-row"><i class="fas fa-location-dot"></i><a href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(o.address)}" target="_blank" rel="noopener">${esc(o.address)}</a></div>
+ <div class="mt-row"><i class="fas fa-sack-dollar"></i><span><b style="color:var(--primary-yellow)">${fmt(o.total)}</b> · ${esc(o.payment)}${o.payment==='Efectivo'&&o.change?' · troco para '+esc(o.change):''}</span></div>
+ ${o.notes?`<div class="mt-row"><i class="fas fa-note-sticky"></i><span>${esc(o.notes)}</span></div>`:''}
+ <ul style="margin:8px 0 0;padding:0;list-style:none;font-size:12px;color:#aaa;line-height:1.6">${o.items.map(i=>`<li>${i.qty}x ${esc(i.title)}</li>`).join('')}</ul>
+ <div class="f"><span>Atribuído: ${fdt(d.asig)}</span><span>Saída: ${fdt(d.start)}</span></div>
+ <div style="margin-top:10px">${act}</div></div>`;
+}
+function motoHist(o){
+ const d=o.dts||{},l=delLabel(o);
+ const fim=o.status===3?`Concluída: ${fdt(d.end)}`:o.status===6?`Falha: ${fdt(d.fail)}`:`Cancelado: ${fdt(d.canc)}`;
+ return `<div class="mz-order"><div class="h"><b>#${o.id} · ${esc(o.name)}</b><span class="mz-badge" style="background:${l[1]}2b;color:${l[1]}">${l[0]}</span></div>
+ <div style="font-size:13px;color:#ddd">${fmt(o.total)} · ${esc(o.payment)}</div>
+ ${o.status>=5&&o.reason?`<div class="ometa">${esc(o.reason)}</div>`:''}
+ <div class="f"><span>Saída: ${fdt(d.start)}</span><span>${fim}</span></div></div>`;
+}
+function motoTop(sub,out){
+ return `<div class="mz-bar"><div class="mz-ic" style="background:#3b82f6;border-color:#3b82f6"><i class="fas fa-motorcycle"></i></div><div class="ttl"><b>Motoboy</b><small>${sub}</small></div>${out?'<button class="mz-ic" onclick="motoLogout()" aria-label="Sair"><i class="fas fa-right-from-bracket"></i></button>':'<button class="mz-ic" onclick="location.hash=\'\'" aria-label="Sair"><i class="fas fa-right-from-bracket"></i></button>'}</div>`;
+}
+function renderMoto(){
+ const b=document.getElementById('motoBody'),me=motoCur();
+ if(!me){
+  const ms=motos().filter(x=>x.active);
+  b.innerHTML=motoTop('Entre para ver suas entregas',false)+`<div class="mz-wrap"><div class="mz-bill" style="margin-top:0">${ms.length?`<label class="ad-l" style="margin-top:0">Quem é você?</label><select id="mtSel" class="form-input">${ms.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select><label class="ad-l">PIN</label><input id="mtPin" class="form-input" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN"><p id="mtErr" style="color:#ff6068;font-size:12px;min-height:16px;margin-bottom:8px"></p><button class="mz-close" style="background:var(--primary)" onclick="motoLogin()">Entrar</button>`:'<p class="pempty">Nenhum motoboy cadastrado. Peça ao administrador para criar o seu acesso.</p>'}</div></div>`;
+  return;
+ }
+ const mine=DB.get().filter(o=>o.type==='delivery'&&o.moto===me.id),st=motoStats(me.id);
+ const act=mine.filter(o=>o.status===1||o.status===2).sort((x,y)=>((x.dts&&x.dts.asig)||0)-((y.dts&&y.dts.asig)||0));
+ const ev=o=>(o.dts&&(o.dts.end||o.dts.fail||o.dts.canc))||o.at;
+ const hist=mine.filter(o=>o.status>=3).sort((x,y)=>ev(y)-ev(x)).slice(0,50);
+ b.innerHTML=motoTop(esc(me.name),true)+`<div class="mz-wrap">
+ <div class="mz-stats">${['Hoje','Semana','Mês'].map((t,i)=>`<div class="mz-stat"><b>${st[i].n}</b><small>${t} · ${fmt(st[i].v)}</small></div>`).join('')}</div>
+ <div class="mz-tabs"><button class="mz-tab ${motoTab==='act'?'on':''}" onclick="motoTab='act';renderMoto()">Entregas (${act.length})</button><button class="mz-tab ${motoTab==='his'?'on':''}" onclick="motoTab='his';renderMoto()">Histórico</button></div>
+ ${motoTab==='act'?(act.length?act.map(motoCard).join(''):'<p class="pempty">Nenhuma entrega atribuída a você agora.</p>'):(hist.length?hist.map(motoHist).join(''):'<p class="pempty">Sem entregas anteriores.</p>')}
+ </div>`;
 }
 
 /* --- Navegación y sincronización --- */
 function route(){
  const h=location.hash;
- panelOpen=h==='#panel';mozoOpen=h==='#mozo';admOpen=h==='#admin';
+ panelOpen=h==='#panel';mozoOpen=h==='#mozo';admOpen=h==='#admin';motoOpen=h==='#moto';
  document.getElementById('panelView').style.display=panelOpen?'block':'none';
  document.getElementById('mozoView').style.display=mozoOpen?'block':'none';
  document.getElementById('adminView').style.display=admOpen?'block':'none';
- document.body.style.overflow=(panelOpen||mozoOpen||admOpen)?'hidden':'';
+ document.getElementById('motoView').style.display=motoOpen?'block':'none';
+ document.body.style.overflow=(panelOpen||mozoOpen||admOpen||motoOpen)?'hidden':'';
  if(panelOpen)renderPanel();
  if(mozoOpen){mozoMesa=null;mozoCart=[];renderMozo()}
  if(admOpen){admMesa=null;renderAdmin()}
+ if(motoOpen){motoTab='act';renderMoto()}
 }
 function refreshAll(){
  const snap=localStorage.getItem('hcde_orders')||'';
@@ -706,6 +911,7 @@ function refreshAll(){
  if(panelOpen)renderPanel();
  if(mozoOpen)renderMozo();
  if(admOpen)renderAdmin();
+ if(motoOpen&&motoCur())renderMoto();
 }
 window.addEventListener('hashchange',route);
 window.addEventListener('storage',refreshAll);
