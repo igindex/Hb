@@ -334,7 +334,7 @@ function sendWhatsAppOrder(){
  msg+=`------------------------------------\n¡Muchas gracias! Quedo atento a la confirmación.`;
  const order=addOrder({type:'delivery',name,address,phone,payment,change,notes,items:cart.map(i=>({title:i.title,price:i.price,qty:i.qty})),total:totalPrice});
  myOrderId=order.id;try{localStorage.setItem('hcde_my',order.id)}catch(e){}
- window.open(`https://wa.me/5950982194749?text=${encodeURIComponent(msg)}`,'_blank');
+ window.open(`https://wa.me/380759654380?text=${encodeURIComponent(msg)}`,'_blank');
  cart=[];updateCartUI();closeCartModal();refreshAll();openTrack();
 }
 /* ===== PEDIDOS: panel, mozo, seguimiento e impresión =====
